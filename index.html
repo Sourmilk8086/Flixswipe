@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>FlixSwipe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #09090f;
+    --surface: #13131c;
+    --surface2: #1c1c28;
+    --border: #2a2a3a;
+    --text: #f0f0f5;
+    --muted: #6b6b80;
+    --accent: #e11d48;
+    --accent2: #9333ea;
+    --green: #4ade80;
+    --red: #f87171;
+    --gold: #fbbf24;
+  }
+  html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; }
+  #app { height: 100vh; display: flex; flex-direction: column; }
+
+  /* ── Screens ── */
+  .screen { display: none; flex-direction: column; height: 100%; }
+  .screen.active { display: flex; }
+
+  /* ── Splash ── */
+  #splash {
+    align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at 50% 0%, #1a0a1e 0%, var(--bg) 60%);
+  }
+  .splash-logo { text-align: center; margin-bottom: 48px; }
+  .splash-icon { font-size: 72px; display: block; margin-bottom: 12px; }
+  .splash-title { font-family: 'Bebas Neue', sans-serif; font-size: 72px; letter-spacing: 8px; color: #fff; line-height: 1; background: linear-gradient(135deg, #fff 40%, #9333ea); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .splash-sub { color: var(--muted); font-size: 13px; letter-spacing: 3px; margin-top: 10px; }
+  .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); border: none; color: #fff; font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 4px; padding: 16px 52px; border-radius: 50px; cursor: pointer; box-shadow: 0 8px 32px rgba(225,29,72,0.35); transition: transform 0.15s, box-shadow 0.15s; }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(225,29,72,0.5); }
+
+  /* ── Setup ── */
+  #setup { align-items: center; justify-content: center; padding: 24px; overflow-y: auto; background: radial-gradient(ellipse at 50% -20%, #150d20 0%, var(--bg) 50%); }
+  .setup-inner { width: 100%; max-width: 420px; }
+  .setup-header { margin-bottom: 32px; }
+  .setup-title { font-family: 'Bebas Neue', sans-serif; font-size: 40px; letter-spacing: 4px; }
+  .setup-sub { color: var(--muted); font-size: 14px; margin-top: 4px; }
+  .form-label { display: block; color: var(--muted); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+  .form-input { width: 100%; padding: 14px 18px; background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px; color: var(--text); font-size: 16px; font-family: 'DM Sans', sans-serif; transition: border-color 0.2s; margin-bottom: 24px; }
+  .form-input:focus { outline: none; border-color: var(--accent2); }
+  .card-box { background: var(--surface); border: 1.5px solid var(--border); border-radius: 18px; padding: 24px; margin-bottom: 14px; }
+  .card-box-title { font-size: 15px; font-weight: 500; margin-bottom: 6px; }
+  .card-box-sub { color: var(--muted); font-size: 13px; margin-bottom: 16px; line-height: 1.5; }
+  .btn-create { width: 100%; padding: 14px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border: none; border-radius: 12px; color: #fff; font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 3px; cursor: pointer; transition: opacity 0.2s; }
+  .btn-create:disabled { opacity: 0.3; cursor: not-allowed; }
+  .btn-join { width: 100%; padding: 14px; background: #1d4ed8; border: none; border-radius: 12px; color: #fff; font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 3px; cursor: pointer; transition: opacity 0.2s; }
+  .btn-join:disabled { opacity: 0.3; cursor: not-allowed; }
+  .input-code { letter-spacing: 6px; font-family: 'Bebas Neue', sans-serif; font-size: 20px; text-transform: uppercase; }
+  .error-msg { color: var(--red); font-size: 13px; margin-top: -18px; margin-bottom: 16px; }
+
+  /* ── Swipe screen ── */
+  #swipe { overflow: hidden; }
+  .swipe-header { padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .logo-small { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 3px; background: linear-gradient(135deg, #fff, #9333ea); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .header-right { display: flex; gap: 8px; align-items: center; }
+  .room-badge { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 5px 12px; font-size: 13px; color: var(--muted); }
+  .room-badge span { color: #fff; font-family: 'Bebas Neue', sans-serif; letter-spacing: 2px; }
+  .btn-matches { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 5px 14px; color: #fff; cursor: pointer; font-size: 14px; transition: background 0.15s; }
+  .btn-matches:hover { background: var(--border); }
+  .btn-leave { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; padding: 4px 8px; }
+  .partner-bar { padding: 8px 18px; flex-shrink: 0; }
+  .partner-status { font-size: 13px; display: flex; align-items: center; gap: 6px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .dot.online { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .dot.offline { background: var(--muted); }
+  .card-area { flex: 1; position: relative; padding: 8px 16px 0; min-height: 0; display: flex; flex-direction: column; }
+  #cardContainer { flex: 1; position: relative; min-height: 0; }
+  .card-stack { position: absolute; inset: 0; max-width: 400px; margin: 0 auto; }
+  .card-bg { position: absolute; inset: 10px 10px 0; border-radius: 24px; overflow: hidden; background: var(--surface); opacity: 0.6; transform: scale(0.96) translateY(8px); }
+  .card-bg img { width: 100%; height: 100%; object-fit: cover; opacity: 0.4; }
+  .swipe-card { position: absolute; inset: 0; border-radius: 24px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.6); touch-action: none; cursor: grab; user-select: none; background: var(--surface); }
+  .swipe-card:active { cursor: grabbing; }
+  .card-poster { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .card-no-poster { width: 100%; height: 100%; background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460); display: flex; align-items: center; justify-content: center; font-size: 80px; }
+  .card-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.35) 45%, transparent 100%); }
+  .stamp { position: absolute; top: 36px; padding: 8px 20px; border-radius: 8px; font-family: 'Bebas Neue', sans-serif; font-size: 48px; letter-spacing: 4px; opacity: 0; transition: opacity 0.1s; pointer-events: none; }
+  .stamp-watch { left: 24px; border: 4px solid var(--green); color: var(--green); transform: rotate(-15deg); }
+  .stamp-skip  { right: 24px; border: 4px solid var(--red); color: var(--red); transform: rotate(15deg); }
+  .card-info { position: absolute; bottom: 0; left: 0; right: 0; padding: 20px 24px 24px; }
+  .card-title-row { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+  .card-title { font-family: 'Bebas Neue', sans-serif; font-size: 30px; letter-spacing: 1px; color: #fff; line-height: 1.1; }
+  .card-year { color: #aaa; font-size: 15px; }
+  .card-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .tag { background: rgba(255,255,255,0.12); backdrop-filter: blur(4px); padding: 3px 10px; border-radius: 20px; font-size: 12px; color: #ddd; }
+  .tag-rating { background: rgba(251,191,36,0.18); color: var(--gold); }
+  .card-overview { color: #bbb; font-size: 13px; line-height: 1.55; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .swipe-btns { padding: 14px 20px 20px; display: flex; justify-content: center; gap: 32px; flex-shrink: 0; }
+  .btn-nope { width: 64px; height: 64px; border-radius: 50%; background: var(--surface); border: 2px solid var(--red); color: var(--red); font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(248,113,113,0.15); transition: transform 0.15s, box-shadow 0.15s; }
+  .btn-nope:hover { transform: scale(1.1); box-shadow: 0 6px 28px rgba(248,113,113,0.3); }
+  .btn-like { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, #4ade80, #16a34a); border: none; color: #fff; font-size: 26px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(74,222,128,0.3); transition: transform 0.15s, box-shadow 0.15s; }
+  .btn-like:hover { transform: scale(1.1); box-shadow: 0 6px 28px rgba(74,222,128,0.5); }
+  .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--muted); gap: 12px; }
+  .empty-state .icon { font-size: 56px; }
+  .empty-state .msg { font-size: 18px; }
+  .loading-state { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--muted); font-size: 16px; gap: 10px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+
+  /* ── Matches screen ── */
+  #matches { overflow: hidden; }
+  .matches-header { padding: 14px 18px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .btn-back { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 22px; padding: 0 4px; }
+  .matches-title { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 3px; }
+  .match-count { background: var(--accent); color: #fff; border-radius: 20px; padding: 2px 10px; font-size: 13px; margin-left: auto; }
+  .matches-list { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .match-card { display: flex; gap: 14px; background: var(--surface); border-radius: 16px; overflow: hidden; border: 1.5px solid var(--border); transition: border-color 0.2s; }
+  .match-card:hover { border-color: var(--accent); }
+  .match-poster { width: 80px; height: 115px; object-fit: cover; flex-shrink: 0; }
+  .match-poster-placeholder { width: 80px; height: 115px; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 28px; flex-shrink: 0; }
+  .match-info { padding: 14px 14px 14px 0; flex: 1; min-width: 0; }
+  .match-title { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 1px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .match-meta { color: var(--muted); font-size: 13px; margin-bottom: 8px; }
+  .match-overview { color: #999; font-size: 12px; line-height: 1.55; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .matches-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; color: var(--muted); gap: 12px; padding: 40px; text-align: center; }
+  .matches-empty .icon { font-size: 56px; }
+
+  /* ── Match popup ── */
+  #match-popup { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 200; cursor: pointer; }
+  #match-popup.show { display: flex; animation: popIn 0.35s cubic-bezier(0.34,1.56,0.64,1); }
+  @keyframes popIn { from { opacity: 0; transform: scale(0.7); } to { opacity: 1; transform: scale(1); } }
+  .popup-inner { background: linear-gradient(160deg, #1a1228, #0f1a2e); border: 2px solid var(--accent); border-radius: 28px; padding: 36px 28px; max-width: 320px; width: 90%; text-align: center; box-shadow: 0 0 80px rgba(225,29,72,0.4), 0 0 160px rgba(147,51,234,0.2); }
+  .popup-emoji { font-size: 52px; margin-bottom: 8px; display: block; }
+  .popup-headline { font-family: 'Bebas Neue', sans-serif; font-size: 42px; letter-spacing: 5px; color: var(--accent); margin-bottom: 4px; }
+  .popup-sub { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+  .popup-poster { width: 110px; height: 155px; object-fit: cover; border-radius: 12px; box-shadow: 0 12px 32px rgba(0,0,0,0.6); margin-bottom: 14px; }
+  .popup-poster-placeholder { width: 110px; height: 155px; background: var(--surface2); border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; font-size: 40px; margin-bottom: 14px; }
+  .popup-title { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 2px; color: #fff; margin-bottom: 4px; }
+  .popup-year { color: var(--muted); font-size: 14px; margin-bottom: 18px; }
+  .popup-dismiss { color: var(--muted); font-size: 12px; }
+
+  /* ── Waiting room ── */
+  #waiting { align-items: center; justify-content: center; padding: 24px; background: radial-gradient(ellipse at 50% 0%, #150d20 0%, var(--bg) 60%); }
+  .waiting-inner { text-align: center; max-width: 360px; }
+  .waiting-title { font-family: 'Bebas Neue', sans-serif; font-size: 42px; letter-spacing: 4px; margin-bottom: 8px; }
+  .waiting-sub { color: var(--muted); font-size: 15px; margin-bottom: 32px; }
+  .room-code-display { background: var(--surface); border: 2px dashed var(--accent2); border-radius: 16px; padding: 24px; margin-bottom: 24px; }
+  .room-code-label { font-size: 12px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 10px; }
+  .room-code-value { font-family: 'Bebas Neue', sans-serif; font-size: 52px; letter-spacing: 12px; color: #fff; }
+  .waiting-hint { color: var(--muted); font-size: 14px; line-height: 1.6; }
+  .pulse-ring { width: 80px; height: 80px; border-radius: 50%; background: rgba(147,51,234,0.15); display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; position: relative; }
+  .pulse-ring::before { content: ''; position: absolute; inset: -8px; border-radius: 50%; border: 2px solid rgba(147,51,234,0.3); animation: pulseRing 1.8s ease infinite; }
+  @keyframes pulseRing { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(1.4); opacity: 0; } }
+  .pulse-icon { font-size: 36px; }
+  .btn-leave-waiting { margin-top: 20px; background: none; border: 1px solid var(--border); color: var(--muted); padding: 10px 24px; border-radius: 10px; cursor: pointer; font-size: 14px; }
+  .btn-backup { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 5px 10px; color: var(--muted); cursor: pointer; font-size: 15px; transition: color 0.15s, background 0.15s; }
+  .btn-backup:hover { color: #fff; background: var(--border); }
+  .btn-restore-label { display: block; width: 100%; padding: 13px; background: #1a2a1a; border: 1.5px solid #2a4a2a; border-radius: 12px; color: var(--green); font-family: 'Bebas Neue', sans-serif; font-size: 16px; letter-spacing: 3px; cursor: pointer; text-align: center; transition: background 0.15s; }
+  .btn-restore-label:hover { background: #1f331f; }
+
+  /* ── Cast overlay ── */
+  .cast-overlay { position: absolute; inset: 0; border-radius: 24px; background: linear-gradient(to top, rgba(5,5,15,0.98) 0%, rgba(5,5,15,0.92) 100%); backdrop-filter: blur(2px); display: flex; flex-direction: column; padding: 20px 18px 18px; transform: translateY(100%); transition: transform 0.38s cubic-bezier(0.34,1.2,0.64,1); z-index: 10; overflow: hidden; }
+  .cast-overlay.open { transform: translateY(0); }
+  .cast-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-shrink: 0; }
+  .cast-title { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 3px; color: #fff; }
+  .cast-close { background: rgba(255,255,255,0.1); border: none; color: #fff; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .cast-scroll { overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 10px; padding-right: 4px; }
+  .cast-scroll::-webkit-scrollbar { width: 3px; } .cast-scroll::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+  .cast-member { display: flex; align-items: center; gap: 12px; }
+  .cast-photo { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: var(--surface2); }
+  .cast-photo-placeholder { width: 46px; height: 46px; border-radius: 50%; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+  .cast-name { font-size: 14px; font-weight: 500; color: #fff; }
+  .cast-character { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .cast-loading { color: var(--muted); font-size: 14px; text-align: center; padding: 20px; }
+  .cast-hint { position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); border: 1px solid var(--border); backdrop-filter: blur(4px); color: var(--muted); font-size: 12px; padding: 6px 14px; border-radius: 20px; white-space: nowrap; pointer-events: none; opacity: 1; transition: opacity 0.5s; letter-spacing: 1px; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Splash -->
+  <div class="screen active" id="splash">
+    <div class="splash-logo">
+      <span class="splash-icon">🎬</span>
+      <div class="splash-title">FLIXSWIPE</div>
+      <div class="splash-sub">SWIPE TOGETHER · WATCH TOGETHER</div>
+    </div>
+    <button class="btn-primary" onclick="showScreen('setup')">GET STARTED</button>
+  </div>
+
+  <!-- Setup -->
+  <div class="screen" id="setup">
+    <div class="setup-inner">
+      <div class="setup-header">
+        <div class="setup-title">🎬 FLIXSWIPE</div>
+        <div class="setup-sub">Find movies you both want to watch.</div>
+      </div>
+
+      <label class="form-label">Your name</label>
+      <input class="form-input" id="nameInput" placeholder="e.g. Alex" maxlength="20" />
+
+      <div class="card-box">
+        <div class="card-box-title">🎉 Create a new room</div>
+        <div class="card-box-sub">Share the room code with your partner so they can join.</div>
+        <button class="btn-create" id="btnCreate" onclick="createRoom()">CREATE ROOM</button>
+      </div>
+
+      <div class="card-box">
+        <div class="card-box-title">🔗 Join existing room</div>
+        <input class="form-input input-code" id="roomInput" placeholder="ENTER CODE" maxlength="6" />
+        <div class="error-msg" id="joinError" style="display:none"></div>
+        <button class="btn-join" id="btnJoin" onclick="joinRoom()">JOIN ROOM</button>
+      </div>
+
+      <div class="card-box" style="border-color:#2a3a2a;">
+        <div class="card-box-title">📂 Restore from backup</div>
+        <div class="card-box-sub">Lost your session? Load a previously saved backup file to resume where you left off.</div>
+        <label class="btn-restore-label">
+          LOAD BACKUP FILE
+          <input type="file" id="backupFileInput" accept=".json" style="display:none" onchange="importBackup(event)" />
+        </label>
+        <div class="error-msg" id="restoreError" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Waiting for partner -->
+  <div class="screen" id="waiting">
+    <div class="waiting-inner">
+      <div class="pulse-ring"><span class="pulse-icon">⏳</span></div>
+      <div class="waiting-title">ROOM CREATED!</div>
+      <div class="waiting-sub">Share this code with your movie partner</div>
+      <div class="room-code-display">
+        <div class="room-code-label">Room Code</div>
+        <div class="room-code-value" id="displayCode">——</div>
+      </div>
+      <div class="waiting-hint">Waiting for your partner to join…<br>Once they're in, swiping will begin!</div>
+      <button class="btn-leave-waiting" onclick="leaveRoom()">Leave Room</button>
+    </div>
+  </div>
+
+  <!-- Swipe -->
+  <div class="screen" id="swipe">
+    <div class="swipe-header">
+      <div class="logo-small">🎬 FLIXSWIPE</div>
+      <div class="header-right">
+        <div class="room-badge">Room: <span id="headerCode">——</span></div>
+        <button class="btn-matches" onclick="showScreen('matches')">❤️ <span id="matchCount">0</span></button>
+        <button class="btn-backup" onclick="exportBackup()" title="Backup progress">💾</button>
+        <button class="btn-leave" onclick="leaveRoom()" title="Leave room">✕</button>
+      </div>
+    </div>
+    <div class="partner-bar">
+      <div class="partner-status" id="partnerStatus">
+        <div class="dot offline" id="partnerDot"></div>
+        <span id="partnerName">Waiting for partner…</span>
+      </div>
+    </div>
+    <div class="card-area">
+      <div id="cardContainer"></div>
+    </div>
+    <div class="swipe-btns">
+      <button class="btn-nope" onclick="swipe('left')">✕</button>
+      <button class="btn-like" onclick="swipe('right')">♥</button>
+    </div>
+  </div>
+
+  <!-- Matches -->
+  <div class="screen" id="matches">
+    <div class="matches-header">
+      <button class="btn-back" onclick="showScreen('swipe')">←</button>
+      <div class="matches-title">🎯 YOUR MATCHES</div>
+      <div class="match-count" id="matchCountBadge">0</div>
+    </div>
+    <div id="matchesList" class="matches-list"></div>
+  </div>
+
+</div>
+
+<!-- Match popup -->
+<div id="match-popup" onclick="closePopup()">
+  <div class="popup-inner" onclick="event.stopPropagation()">
+    <span class="popup-emoji">🎉</span>
+    <div class="popup-headline">IT'S A MATCH!</div>
+    <div class="popup-sub">You both want to watch this!</div>
+    <div id="popupPoster"></div>
+    <div class="popup-title" id="popupTitle"></div>
+    <div class="popup-year" id="popupYear"></div>
+    <div class="popup-dismiss">Tap anywhere to continue</div>
+  </div>
+</div>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, set, get, update, onValue, push, off } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+// ── Firebase config ──────────────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyDgCJFP0g7EccwIX4eRaQ-GNBdAA3KCeP0",
+  authDomain: "flixswipe-858ff.firebaseapp.com",
+  databaseURL: "https://flixswipe-858ff-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "flixswipe-858ff",
+  storageBucket: "flixswipe-858ff.firebasestorage.app",
+  messagingSenderId: "677220647947",
+  appId: "1:677220647947:web:f4a4e89e5838ef0f9ff30e"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
+
+// ── State ────────────────────────────────────────────────────────────────────
+let userId   = null;
+let userName = null;
+let roomCode = null;
+let movies   = [];
+let cardIdx  = 0;
+let swiping  = false;
+let listeners = [];
+
+// ── Fallback movies ───────────────────────────────────────────────────────────
+const FALLBACK = [
+  { id: 550,    title: "Fight Club",               overview: "An insomniac office worker forms an underground fight club with a soap salesman.",                          poster: "https://image.tmdb.org/t/p/w500/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg",  year: "1999", rating: "8.4", genres: ["Drama","Thriller"] },
+  { id: 278,    title: "The Shawshank Redemption",  overview: "Two imprisoned men bond over years, finding solace and eventual redemption through acts of decency.",      poster: "https://image.tmdb.org/t/p/w500/q6y0Go1tsGEsmtFryDOJo3dEmqu.jpg",  year: "1994", rating: "9.3", genres: ["Drama"] },
+  { id: 238,    title: "The Godfather",             overview: "The aging patriarch of an organized crime dynasty transfers control to his reluctant son.",                poster: "https://image.tmdb.org/t/p/w500/3bhkrj58Vtu7enYsLe1rLtszOum.jpg",  year: "1972", rating: "9.2", genres: ["Crime","Drama"] },
+  { id: 424,    title: "Schindler's List",          overview: "In German-occupied Poland, Oskar Schindler becomes concerned for his Jewish workforce.",                   poster: "https://image.tmdb.org/t/p/w500/sF1U4EUQS8YHUYjNl3pMGNIQyr0.jpg",  year: "1993", rating: "9.0", genres: ["History","Drama"] },
+  { id: 13,     title: "Forrest Gump",              overview: "The presidencies of Kennedy and Johnson through the eyes of an Alabama man with an IQ of 75.",             poster: "https://image.tmdb.org/t/p/w500/arw2vcBveWOVZr6pxd9XTd1TdQa.jpg",  year: "1994", rating: "8.8", genres: ["Comedy","Drama","Romance"] },
+  { id: 680,    title: "Pulp Fiction",              overview: "The lives of two mob hitmen, a boxer, and a pair of diner bandits intertwine in four tales of violence.",  poster: "https://image.tmdb.org/t/p/w500/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg",  year: "1994", rating: "8.9", genres: ["Thriller","Crime"] },
+  { id: 155,    title: "The Dark Knight",           overview: "When the menace known as the Joker wreaks havoc on Gotham, Batman must accept one of the greatest tests.", poster: "https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg",  year: "2008", rating: "9.0", genres: ["Action","Crime","Drama"] },
+  { id: 389,    title: "12 Angry Men",              overview: "A jury holdout attempts to prevent a miscarriage of justice by forcing his colleagues to reconsider.",     poster: "https://image.tmdb.org/t/p/w500/ppd84D2i9W8jXmsyInGyihiSyqz.jpg",  year: "1957", rating: "9.0", genres: ["Drama"] },
+  { id: 129,    title: "Spirited Away",             overview: "During her family's move, a sullen 10-year-old girl wanders into a world ruled by gods and spirits.",      poster: "https://image.tmdb.org/t/p/w500/39wmItIWsg5sZMyRUHLkWBcuVCM.jpg",  year: "2001", rating: "8.8", genres: ["Animation","Family","Fantasy"] },
+  { id: 372058, title: "Your Name",                 overview: "Two strangers find themselves linked in a bizarre way — a high school girl and a Tokyo boy.",              poster: "https://image.tmdb.org/t/p/w500/q719jXXEzOoYaps6babgKnONONX.jpg",  year: "2016", rating: "8.4", genres: ["Romance","Animation","Drama"] },
+  { id: 497,    title: "The Green Mile",            overview: "The lives of guards on Death Row are affected by one of their charges: a man with a mysterious gift.",     poster: "https://image.tmdb.org/t/p/w500/velWPhVovIa8diJEOHMEt0ALqkS.jpg",  year: "1999", rating: "8.6", genres: ["Fantasy","Drama","Crime"] },
+  { id: 598,    title: "City of God",               overview: "Two boys growing up in a violent neighborhood of Rio de Janeiro take different paths.",                    poster: "https://image.tmdb.org/t/p/w500/k7eYdWvhYQyRQoU2TB2A2Xu2grZ.jpg",  year: "2002", rating: "8.6", genres: ["Drama","Crime"] },
+  { id: 244786, title: "Whiplash",                  overview: "A promising young drummer enrolls at a cut-throat music conservatory where his dreams are challenged.",    poster: "https://image.tmdb.org/t/p/w500/7fn624j5lj3xTme2SgiLCeuedmO.jpg",  year: "2014", rating: "8.5", genres: ["Drama","Music"] },
+  { id: 637,    title: "Life Is Beautiful",         overview: "When a Jewish man and his family are sent to a camp, he uses humor to shield his son from the reality.",   poster: "https://image.tmdb.org/t/p/w500/74hLDKjD5aGYOotO6esUVaeISa2.jpg",  year: "1997", rating: "8.6", genres: ["Drama","Romance","Comedy"] },
+  { id: 11216,  title: "Cinema Paradiso",           overview: "A filmmaker recalls his childhood, when he fell in love with the movies at his village's theater.",        poster: "https://image.tmdb.org/t/p/w500/gCI2AeMV4IHSewhJkzsur5MEp6R.jpg",  year: "1988", rating: "8.5", genres: ["Drama","Romance"] },
+  { id: 120,    title: "The Lord of the Rings: Fellowship", overview: "A meek Hobbit and his companions set out on a journey to destroy the One Ring.",                  poster: "https://image.tmdb.org/t/p/w500/6oom5QYQ2yQTMJIbnvbkBL9cHo6.jpg",  year: "2001", rating: "8.8", genres: ["Adventure","Fantasy","Action"] },
+  { id: 19404,  title: "Dilwale Dulhania Le Jayenge", overview: "When two Indian teens fall in love during a trip to Europe, they face disapproving parents.",           poster: "https://image.tmdb.org/t/p/w500/2CAL2433ZeIihfX1Hb2139CX0pW.jpg",  year: "1995", rating: "8.7", genres: ["Drama","Romance"] },
+  { id: 346,    title: "Seven Samurai",             overview: "A poor village hires seven samurai to defend them against a ruthless band of bandits.",                    poster: "https://image.tmdb.org/t/p/w500/8OKmBV5BUFzmozIC3pPWKHy17kx.jpg",  year: "1954", rating: "8.6", genres: ["Action","Drama","Adventure"] },
+  { id: 361743, title: "Top Gun: Maverick",         overview: "After 30 years, Maverick is still pushing the envelope as a test pilot, serving as a Top Gun instructor.",poster: "https://image.tmdb.org/t/p/w500/62HCnUTziyWcpDaBO2i1DX17ljH.jpg",  year: "2022", rating: "8.3", genres: ["Action","Drama"] },
+  { id: 496243, title: "Parasite",                  overview: "Greed and class discrimination threaten the newly formed symbiotic relationship between two families.",   poster: "https://image.tmdb.org/t/p/w500/7IiTTgloJzvGI1TAYymCfbfl3vT.jpg",  year: "2019", rating: "8.5", genres: ["Thriller","Drama","Comedy"] },
+];
+
+// ── TMDB ─────────────────────────────────────────────────────────────────────
+const TMDB_KEY  = "61372a71dcef402aa1fc27a778a80873"; // ← paste your TMDB API key here
+const TMDB_BASE = "https://api.themoviedb.org/3";
+const IMG_BASE  = "https://image.tmdb.org/t/p/w500";
+const GENRE_MAP = {28:"Action",12:"Adventure",16:"Animation",35:"Comedy",80:"Crime",99:"Documentary",18:"Drama",10751:"Family",14:"Fantasy",36:"History",27:"Horror",10402:"Music",9648:"Mystery",10749:"Romance",878:"Sci-Fi",10770:"TV Movie",53:"Thriller",10752:"War",37:"Western"};
+
+async function fetchMovies(page = 1) {
+  if (!TMDB_KEY) return FALLBACK;
+  try {
+    const res  = await fetch(`${TMDB_BASE}/movie/popular?api_key=${TMDB_KEY}&page=${page}&language=en-US`);
+    const data = await res.json();
+    if (!data.results) return FALLBACK;
+    return data.results.map(m => ({
+      id:       m.id,
+      title:    m.title,
+      overview: m.overview || "No description available.",
+      poster:   m.poster_path ? `${IMG_BASE}${m.poster_path}` : null,
+      year:     m.release_date?.slice(0, 4) || "—",
+      rating:   m.vote_average ? m.vote_average.toFixed(1) : "—",
+      genres:   (m.genre_ids || []).slice(0, 3).map(id => GENRE_MAP[id]).filter(Boolean),
+    }));
+  } catch (e) {
+    console.warn("TMDB fetch failed, using fallback:", e);
+    return FALLBACK;
+  }
+}
+
+async function loadMovies() {
+  const page1 = await fetchMovies(1);
+  const page2 = await fetchMovies(2);
+  const page3 = await fetchMovies(3);
+  const seen  = new Set();
+  return [...page1, ...page2, ...page3].filter(m => seen.has(m.id) ? false : seen.add(m.id));
+}
+
+const castCache = {};
+async function fetchCast(movieId) {
+  if (castCache[movieId]) return castCache[movieId];
+  if (!TMDB_KEY) return [];
+  try {
+    const res  = await fetch(`${TMDB_BASE}/movie/${movieId}/credits?api_key=${TMDB_KEY}`);
+    const data = await res.json();
+    const cast = (data.cast || []).slice(0, 12).map(p => ({
+      name:      p.name,
+      character: p.character || '—',
+      photo:     p.profile_path ? `https://image.tmdb.org/t/p/w185${p.profile_path}` : null,
+    }));
+    castCache[movieId] = cast;
+    return cast;
+  } catch { return []; }
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+const uid6 = () => Math.random().toString(36).slice(2, 8).toUpperCase();
+const qs    = id => document.getElementById(id);
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  qs(name).classList.add('active');
+}
+window.showScreen = showScreen;
+
+function saveSession() {
+  localStorage.setItem('flixswipe_session', JSON.stringify({ userId, userName, roomCode }));
+}
+function clearSession() {
+  localStorage.removeItem('flixswipe_session');
+}
+
+// ── Input validation ─────────────────────────────────────────────────────────
+qs('nameInput').addEventListener('input', updateBtns);
+qs('roomInput').addEventListener('input', updateBtns);
+function updateBtns() {
+  const name = qs('nameInput').value.trim();
+  const code = qs('roomInput').value.trim();
+  qs('btnCreate').disabled = !name;
+  qs('btnJoin').disabled   = !name || code.length < 4;
+}
+updateBtns();
+
+// ── Create room ──────────────────────────────────────────────────────────────
+async function createRoom() {
+  const name = qs('nameInput').value.trim();
+  if (!name) return;
+  userId   = uid6();
+  userName = name;
+  roomCode = uid6();
+  saveSession();
+
+  await set(ref(db, `rooms/${roomCode}`), {
+    created: Date.now(),
+    members: { [userId]: { name, joinedAt: Date.now() } },
+    movies: FALLBACK.reduce((acc, m) => { acc[m.id] = m; return acc; }, {}),
+  });
+
+  qs('displayCode').textContent = roomCode;
+  showScreen('waiting');
+  listenForPartner();
+}
+window.createRoom = createRoom;
+
+// ── Join room ────────────────────────────────────────────────────────────────
+async function joinRoom() {
+  const name = qs('nameInput').value.trim();
+  const code = qs('roomInput').value.trim().toUpperCase();
+  if (!name || !code) return;
+
+  const snap = await get(ref(db, `rooms/${code}`));
+  if (!snap.exists()) {
+    qs('joinError').textContent = "Room not found! Check the code.";
+    qs('joinError').style.display = 'block';
+    return;
+  }
+  const roomData = snap.val();
+  const members  = Object.keys(roomData.members || {});
+  if (members.length >= 2) {
+    qs('joinError').textContent = "This room is already full!";
+    qs('joinError').style.display = 'block';
+    return;
+  }
+  qs('joinError').style.display = 'none';
+
+  userId   = uid6();
+  userName = name;
+  roomCode = code;
+  saveSession();
+
+  await update(ref(db, `rooms/${code}/members`), { [userId]: { name, joinedAt: Date.now() } });
+
+  movies = await loadMovies();
+  enterSwipeScreen(roomData.members);
+}
+window.joinRoom = joinRoom;
+
+// ── Listen for partner to join (waiting screen) ──────────────────────────────
+function listenForPartner() {
+  const r = ref(db, `rooms/${roomCode}/members`);
+  const unsub = onValue(r, snap => {
+    const members = snap.val() || {};
+    const others  = Object.entries(members).filter(([id]) => id !== userId);
+    if (others.length > 0) {
+      loadMovies().then(ms => { movies = ms; enterSwipeScreen(members); });
+    }
+  });
+  listeners.push({ r, unsub });
+}
+
+// ── Enter swipe screen ───────────────────────────────────────────────────────
+async function enterSwipeScreen(membersObj) {
+  // Detach waiting listeners
+  detachListeners();
+
+  qs('headerCode').textContent = roomCode;
+
+  // Set partner name
+  const others = Object.entries(membersObj || {}).filter(([id]) => id !== userId);
+  if (others.length) {
+    qs('partnerDot').className  = 'dot online';
+    qs('partnerName').textContent = `${others[0][1].name} is in the room`;
+  }
+
+  // Load existing swipe index
+  const swipeSnap = await get(ref(db, `rooms/${roomCode}/swipes/${userId}`));
+  cardIdx = swipeSnap.exists() ? (swipeSnap.val().index || 0) : 0;
+
+  showScreen('swipe');
+  qs('cardContainer').innerHTML = `<div class="loading-state"><div class="spinner"></div> Loading movies…</div>`;
+
+  // If movies haven't loaded yet, load them now
+  if (!movies.length) movies = await loadMovies();
+
+  renderCard();
+  listenToMatches();
+  listenToMembers();
+}
+
+// ── Render card ──────────────────────────────────────────────────────────────
+function renderCard() {
+  const container = qs('cardContainer');
+  container.innerHTML = '';
+
+  if (!movies.length) {
+    container.innerHTML = `<div class="loading-state"><div class="spinner"></div> Loading movies…</div>`;
+    return;
+  }
+  if (cardIdx >= movies.length) {
+    container.innerHTML = `<div class="empty-state"><div class="icon">🎬</div><div class="msg">No more movies!</div></div>`;
+    return;
+  }
+
+  const movie = movies[cardIdx];
+  const next  = movies[cardIdx + 1];
+
+  // Stack wrapper
+  const stack = document.createElement('div');
+  stack.className = 'card-stack';
+
+
+  // Background card
+  if (next) {
+    const bg = document.createElement('div');
+    bg.className = 'card-bg';
+    if (next.poster) {
+      const img = document.createElement('img');
+      img.src = next.poster; img.alt = '';
+      bg.appendChild(img);
+    }
+    stack.appendChild(bg);
+  }
+
+  // Main card
+  const card = buildCard(movie);
+  stack.appendChild(card);
+  container.appendChild(stack);
+  initDrag(card, movie);
+}
+
+function buildCard(movie) {
+  const card = document.createElement('div');
+  card.className = 'swipe-card';
+
+  const mediaHTML = movie.poster
+    ? `<img class="card-poster" src="${movie.poster}" alt="${movie.title}" draggable="false" />`
+    : `<div class="card-no-poster">🎬</div>`;
+
+  const genreTags = (movie.genres || []).slice(0,3).map(g => `<span class="tag">${g}</span>`).join('');
+
+  card.innerHTML = `
+    ${mediaHTML}
+    <div class="card-overlay"></div>
+    <div class="stamp stamp-watch">WATCH</div>
+    <div class="stamp stamp-skip">SKIP</div>
+    <div class="card-info">
+      <div class="card-title-row">
+        <span class="card-title">${movie.title}</span>
+        <span class="card-year">${movie.year}</span>
+      </div>
+      <div class="card-tags">
+        ${genreTags}
+        <span class="tag tag-rating">⭐ ${movie.rating}</span>
+      </div>
+      <p class="card-overview">${movie.overview}</p>
+    </div>
+    <div class="cast-hint" id="castHint">👆 Tap to see cast</div>
+    <div class="cast-overlay" id="castOverlay">
+      <div class="cast-header">
+        <span class="cast-title">🎭 CAST</span>
+        <button class="cast-close" id="castClose">✕</button>
+      </div>
+      <div class="cast-scroll" id="castScroll">
+        <div class="cast-loading">Loading cast…</div>
+      </div>
+    </div>
+  `;
+
+  // Tap hint: fade out after first open
+  const hint = card.querySelector('#castHint');
+  const overlay = card.querySelector('#castOverlay');
+  const closeBtn = card.querySelector('#castClose');
+  let castLoaded = false;
+  let hintShown = true;
+
+  async function openCast() {
+    overlay.classList.add('open');
+    if (hintShown) { hint.style.opacity = '0'; hintShown = false; }
+    if (!castLoaded) {
+      castLoaded = true;
+      const scroll = card.querySelector('#castScroll');
+      try {
+        const cast = await fetchCast(movie.id);
+        if (!cast.length) { scroll.innerHTML = `<div class="cast-loading">No cast info available.</div>`; return; }
+        scroll.innerHTML = cast.map(p => `
+          <div class="cast-member">
+            ${p.photo
+              ? `<img class="cast-photo" src="${p.photo}" alt="${p.name}" />`
+              : `<div class="cast-photo-placeholder">🎭</div>`}
+            <div>
+              <div class="cast-name">${p.name}</div>
+              <div class="cast-character">${p.character}</div>
+            </div>
+          </div>
+        `).join('');
+      } catch {
+        scroll.innerHTML = `<div class="cast-loading">Couldn't load cast.</div>`;
+      }
+    }
+  }
+
+  closeBtn.addEventListener('pointerdown', e => { e.stopPropagation(); });
+  closeBtn.addEventListener('click', e => { e.stopPropagation(); overlay.classList.remove('open'); });
+  overlay.addEventListener('pointerdown', e => e.stopPropagation());
+
+  // Store openCast on card for initDrag to call
+  card._openCast = openCast;
+
+  return card;
+}
+
+// ── Drag logic ───────────────────────────────────────────────────────────────
+function initDrag(card, movie) {
+  let startX = null, startY = null, curX = 0, animating = false;
+  const stampWatch = card.querySelector('.stamp-watch');
+  const stampSkip  = card.querySelector('.stamp-skip');
+  const overlay    = card.querySelector('#castOverlay');
+
+  function onDown(e) {
+    if (animating) return;
+    if (overlay?.classList.contains('open')) return;
+    startX = e.clientX ?? e.touches?.[0]?.clientX;
+    startY = e.clientY ?? e.touches?.[0]?.clientY;
+    card.style.transition = 'none';
+  }
+  function onMove(e) {
+    if (startX == null) return;
+    if (overlay?.classList.contains('open')) return;
+    curX = (e.clientX ?? e.touches?.[0]?.clientX) - startX;
+    const rot = curX * 0.07;
+    card.style.transform = `translateX(${curX}px) rotate(${rot}deg)`;
+    const likeA = Math.min(1, Math.max(0,  curX / 90));
+    const skipA = Math.min(1, Math.max(0, -curX / 90));
+    stampWatch.style.opacity = likeA;
+    stampSkip.style.opacity  = skipA;
+  }
+  function onUp(e) {
+    if (startX == null) return;
+    const endX = e.clientX ?? e.changedTouches?.[0]?.clientX ?? startX;
+    const endY = e.clientY ?? e.changedTouches?.[0]?.clientY ?? startY;
+    const dx = Math.abs(endX - startX);
+    const dy = Math.abs(endY - startY);
+    startX = null; startY = null;
+
+    // Tap detection: tiny movement = open cast
+    if (dx < 8 && dy < 8 && !overlay?.classList.contains('open')) {
+      card._openCast?.();
+      curX = 0;
+      return;
+    }
+
+    if (Math.abs(curX) > 100) {
+      const dir = curX > 0 ? 'right' : 'left';
+      animating = true;
+      const tx = dir === 'right' ? 1400 : -1400;
+      card.style.transition = 'transform 0.35s ease, opacity 0.35s ease';
+      card.style.transform  = `translateX(${tx}px) rotate(${curX * 0.07}deg)`;
+      card.style.opacity    = '0';
+      setTimeout(() => { animating = false; swipeMovie(dir, movie); }, 360);
+    } else {
+      card.style.transition = 'transform 0.3s cubic-bezier(0.34,1.56,0.64,1)';
+      card.style.transform  = 'translateX(0) rotate(0deg)';
+      stampWatch.style.opacity = 0;
+      stampSkip.style.opacity  = 0;
+      curX = 0;
+    }
+  }
+  card.addEventListener('pointerdown', onDown);
+  card.addEventListener('pointermove', onMove);
+  card.addEventListener('pointerup',   onUp);
+  card.addEventListener('pointercancel', onUp);
+  card.setPointerCapture && card.addEventListener('pointerdown', e => card.setPointerCapture(e.pointerId));
+}
+
+// ── Button swipe ─────────────────────────────────────────────────────────────
+function swipe(dir) {
+  if (cardIdx >= movies.length || swiping) return;
+  swiping = true;
+  const stack = qs('cardContainer').querySelector('.card-stack');
+  const card  = stack?.querySelector('.swipe-card');
+  if (card) {
+    card.style.transition = 'transform 0.35s ease, opacity 0.35s ease';
+    card.style.transform  = `translateX(${dir === 'right' ? 1400 : -1400}px) rotate(${dir === 'right' ? 25 : -25}deg)`;
+    card.style.opacity    = '0';
+  }
+  setTimeout(() => { swiping = false; swipeMovie(dir, movies[cardIdx]); }, 360);
+}
+window.swipe = swipe;
+
+// ── Core swipe logic ─────────────────────────────────────────────────────────
+async function swipeMovie(dir, movie) {
+  const liked = dir === 'right';
+  cardIdx++;
+
+  // Write swipe to Firebase
+  await update(ref(db, `rooms/${roomCode}/swipes/${userId}`), {
+    index: cardIdx,
+    [`votes/${movie.id}`]: liked,
+  });
+
+  if (liked) {
+    // Check if partner also liked this
+    const snap = await get(ref(db, `rooms/${roomCode}/swipes`));
+    const allSwipes = snap.val() || {};
+    const partnerSwipes = Object.entries(allSwipes).filter(([id]) => id !== userId);
+    for (const [, ps] of partnerSwipes) {
+      if (ps.votes?.[movie.id] === true) {
+        await addMatch(movie);
+        break;
+      }
+    }
+  }
+
+  renderCard();
+}
+
+// ── Add match ────────────────────────────────────────────────────────────────
+async function addMatch(movie) {
+  const snap = await get(ref(db, `rooms/${roomCode}/matches/${movie.id}`));
+  if (!snap.exists()) {
+    await set(ref(db, `rooms/${roomCode}/matches/${movie.id}`), movie);
+  }
+}
+
+// ── Listen to matches (real-time) ────────────────────────────────────────────
+function listenToMatches() {
+  const r = ref(db, `rooms/${roomCode}/matches`);
+  let knownIds = new Set();
+  const unsub = onValue(r, snap => {
+    const data = snap.val() || {};
+    const matchList = Object.values(data);
+    qs('matchCount').textContent      = matchList.length;
+    qs('matchCountBadge').textContent = matchList.length;
+
+    // Detect new match
+    for (const m of matchList) {
+      if (!knownIds.has(m.id)) {
+        knownIds.add(m.id);
+        if (knownIds.size > 1 || matchList.length > 0) showMatchPopup(m);
+      }
+    }
+    // Seed initial known ids without showing popup
+    if (knownIds.size === 0) matchList.forEach(m => knownIds.add(m.id));
+
+    renderMatchesList(matchList);
+  });
+  listeners.push({ r, unsub });
+}
+
+// ── Listen to members ─────────────────────────────────────────────────────────
+function listenToMembers() {
+  const r = ref(db, `rooms/${roomCode}/members`);
+  const unsub = onValue(r, snap => {
+    const members = snap.val() || {};
+    const others  = Object.entries(members).filter(([id]) => id !== userId);
+    if (others.length) {
+      qs('partnerDot').className    = 'dot online';
+      qs('partnerName').textContent = `${others[0][1].name} is in the room`;
+    } else {
+      qs('partnerDot').className    = 'dot offline';
+      qs('partnerName').textContent = 'Partner not yet joined';
+    }
+  });
+  listeners.push({ r, unsub });
+}
+
+// ── Render matches list ───────────────────────────────────────────────────────
+function renderMatchesList(matchList) {
+  const el = qs('matchesList');
+  if (!matchList.length) {
+    el.innerHTML = `<div class="matches-empty"><div class="icon">🎬</div><div>No matches yet!</div><div style="font-size:13px;color:var(--muted);margin-top:4px">Keep swiping — when you both like a movie it'll appear here.</div></div>`;
+    return;
+  }
+  el.innerHTML = matchList.map(m => `
+    <div class="match-card">
+      ${m.poster
+        ? `<img class="match-poster" src="${m.poster}" alt="${m.title}" />`
+        : `<div class="match-poster-placeholder">🎬</div>`}
+      <div class="match-info">
+        <div class="match-title">${m.title}</div>
+        <div class="match-meta">${m.year} · ⭐ ${m.rating}</div>
+        <div class="match-overview">${m.overview}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── Match popup ───────────────────────────────────────────────────────────────
+let popupTimeout = null;
+function showMatchPopup(movie) {
+  qs('popupTitle').textContent = movie.title;
+  qs('popupYear').textContent  = movie.year;
+  qs('popupPoster').innerHTML  = movie.poster
+    ? `<img class="popup-poster" src="${movie.poster}" alt="${movie.title}" />`
+    : `<div class="popup-poster-placeholder">🎬</div>`;
+  qs('match-popup').classList.add('show');
+  if (popupTimeout) clearTimeout(popupTimeout);
+  popupTimeout = setTimeout(closePopup, 5000);
+}
+function closePopup() {
+  qs('match-popup').classList.remove('show');
+}
+window.closePopup = closePopup;
+
+// ── Leave room ────────────────────────────────────────────────────────────────
+// ── Backup / Restore ──────────────────────────────────────────────────────────
+async function exportBackup() {
+  if (!userId || !roomCode) return;
+  const swipeSnap = await get(ref(db, `rooms/${roomCode}/swipes/${userId}`));
+  const backup = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    userId,
+    userName,
+    roomCode,
+    swipes: swipeSnap.exists() ? swipeSnap.val() : {},
+  };
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `flixswipe-backup-${userName}-${roomCode}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+window.exportBackup = exportBackup;
+
+async function importBackup(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const errEl = qs('restoreError');
+  errEl.style.display = 'none';
+  try {
+    const text   = await file.text();
+    const backup = JSON.parse(text);
+    if (!backup.userId || !backup.roomCode || !backup.userName) throw new Error("Invalid backup file.");
+
+    // Check room still exists
+    const snap = await get(ref(db, `rooms/${backup.roomCode}`));
+    if (!snap.exists()) {
+      errEl.textContent = "Room no longer exists in the database.";
+      errEl.style.display = 'block';
+      return;
+    }
+
+    // Restore session
+    userId   = backup.userId;
+    userName = backup.userName;
+    roomCode = backup.roomCode;
+    saveSession();
+
+    // Restore swipes to Firebase
+    if (backup.swipes && Object.keys(backup.swipes).length) {
+      await update(ref(db, `rooms/${roomCode}/swipes/${userId}`), backup.swipes);
+    }
+
+    // Re-register in room members
+    await update(ref(db, `rooms/${roomCode}/members`), { [userId]: { name: userName, joinedAt: Date.now() } });
+
+    movies = await loadMovies();
+    await enterSwipeScreen(snap.val().members || {});
+  } catch (e) {
+    errEl.textContent = "Failed to restore: " + e.message;
+    errEl.style.display = 'block';
+  }
+  // Reset file input so same file can be re-selected if needed
+  event.target.value = '';
+}
+window.importBackup = importBackup;
+
+async function leaveRoom() {
+  detachListeners();
+  if (roomCode && userId) {
+    // Remove self from members
+    await set(ref(db, `rooms/${roomCode}/members/${userId}`), null);
+  }
+  clearSession();
+  userId = null; userName = null; roomCode = null; movies = []; cardIdx = 0;
+  showScreen('setup');
+}
+window.leaveRoom = leaveRoom;
+
+function detachListeners() {
+  listeners.forEach(({ r, unsub }) => { try { off(r); } catch {} });
+  listeners = [];
+}
+
+// ── Resume session ────────────────────────────────────────────────────────────
+(async () => {
+  const saved = localStorage.getItem('flixswipe_session');
+  if (saved) {
+    try {
+      const s = JSON.parse(saved);
+      if (s.userId && s.userName && s.roomCode) {
+        const snap = await get(ref(db, `rooms/${s.roomCode}`));
+        if (snap.exists()) {
+          userId = s.userId; userName = s.userName; roomCode = s.roomCode;
+          movies = await loadMovies();
+          const roomData = snap.val();
+          // Re-register self in case we were removed
+          await update(ref(db, `rooms/${roomCode}/members`), { [userId]: { name: userName, joinedAt: Date.now() } });
+          await enterSwipeScreen(roomData.members || {});
+          return;
+        }
+      }
+    } catch {}
+    clearSession();
+  }
+})();
+
+</script>
+</body>
+</html>
