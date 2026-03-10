@@ -70,9 +70,12 @@
   .btn-matches:hover { background: var(--border); }
   .btn-leave { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; padding: 4px 8px; }
   .partner-bar { padding: 8px 18px; flex-shrink: 0; }
-  .partner-status { font-size: 13px; display: flex; align-items: center; gap: 6px; }
+  .partner-status { font-size: 13px; display: flex; align-items: center; gap: 6px; position: relative; }
   .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
   .dot.online { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .sleep-token-bg { position: relative; display: inline-flex; align-items: center; gap: 6px; }
+  .sleep-token-bg::before { content: ''; position: absolute; left: -8px; right: -8px; top: -6px; bottom: -6px; background: url('https://upload.wikimedia.org/wikipedia/commons/thumb/9/9d/Sleep_Token_Logo.svg/200px-Sleep_Token_Logo.svg.png') center/contain no-repeat; opacity: 0.15; pointer-events: none; }
+  .sleep-token-name { color: var(--green); text-shadow: 0 0 12px rgba(74,222,128,0.6); font-weight: 500; }
   .dot.offline { background: var(--muted); }
   .card-area { flex: 1; position: relative; padding: 8px 16px 0; min-height: 0; display: flex; flex-direction: column; }
   #cardContainer { flex: 1; position: relative; min-height: 0; }
@@ -397,6 +400,7 @@ async function fetchCast(movieId) {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const uid6 = () => Math.random().toString(36).slice(2, 8).toUpperCase();
 const qs    = id => document.getElementById(id);
+const isSugar = name => name?.trim().toLowerCase() === 'sugar';
 
 function showScreen(name) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -500,7 +504,9 @@ async function enterSwipeScreen(membersObj) {
   const others = Object.entries(membersObj || {}).filter(([id]) => id !== userId);
   if (others.length) {
     qs('partnerDot').className  = 'dot online';
-    qs('partnerName').textContent = `${others[0][1].name} is in the room`;
+    qs('partnerName').innerHTML = isSugar(others[0][1].name)
+      ? `<span class="sleep-token-bg"><span class="sleep-token-name">${others[0][1].name} is in the room 🩸</span></span>`
+      : `${others[0][1].name} is in the room`;
   }
 
   // Load existing swipe index
@@ -786,7 +792,9 @@ function listenToMembers() {
     const others  = Object.entries(members).filter(([id]) => id !== userId);
     if (others.length) {
       qs('partnerDot').className    = 'dot online';
-      qs('partnerName').textContent = `${others[0][1].name} is in the room`;
+      qs('partnerName').innerHTML   = isSugar(others[0][1].name)
+        ? `<span class="sleep-token-bg"><span class="sleep-token-name">${others[0][1].name} is in the room 🩸</span></span>`
+        : `${others[0][1].name} is in the room`;
     } else {
       qs('partnerDot').className    = 'dot offline';
       qs('partnerName').textContent = 'Partner not yet joined';
